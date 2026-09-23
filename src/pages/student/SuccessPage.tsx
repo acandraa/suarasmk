@@ -1,4 +1,3 @@
-import React from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import { CheckCircle, MessageCircle, Copy } from 'lucide-react';
 

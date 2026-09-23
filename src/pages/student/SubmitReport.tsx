@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { Send, Upload } from 'lucide-react';
+import { Send } from 'lucide-react';
 
 const CATEGORIES = [
   'Bullying',
