@@ -1,0 +1,228 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
+import { LogOut, Eye, Trash2, Users } from 'lucide-react';
+
+const AdminDashboard = () => {
+  const navigate = useNavigate();
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ total: 0, diproses: 0, selesai: 0, baru: 0 });
+  const [activeTab, setActiveTab] = useState('pengaduan'); // 'pengaduan' or 'pengguna'
+
+  useEffect(() => {
+    checkUser();
+    fetchReports();
+  }, []);
+
+  const checkUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      // In a real app, redirect if not admin
+      // navigate('/admin/login');
+    }
+  };
+
+  const fetchReports = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('reports')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      setReports(data || []);
+      
+      const total = data?.length || 0;
+      const baru = data?.filter(r => r.status === 'Baru').length || 0;
+      const diproses = data?.filter(r => r.status === 'Diperiksa' || r.status === 'Ditindaklanjuti').length || 0;
+      const selesai = data?.filter(r => r.status === 'Selesai').length || 0;
+      
+      setStats({ total, baru, diproses, selesai });
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/');
+  };
+
+  const handleDeleteReport = async (id: string) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus pengaduan ini secara permanen?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchReports();
+      alert('Pengaduan berhasil dihapus.');
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      alert('Gagal menghapus pengaduan.');
+    }
+  };
+
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case 'Baru': return 'badge-baru';
+      case 'Diperiksa': return 'badge-diperiksa';
+      case 'Ditindaklanjuti': return 'badge-ditindaklanjuti';
+      case 'Selesai': return 'badge-selesai';
+      default: return 'badge-baru';
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2>Dashboard Admin (Superuser)</h2>
+        <button onClick={handleLogout} className="btn btn-outline" style={{ padding: '0.5rem 1rem' }}>
+          <LogOut size={16} /> Keluar
+        </button>
+      </div>
+
+      <div className="flex gap-4 mb-6">
+        <button 
+          className={`btn ${activeTab === 'pengaduan' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => setActiveTab('pengaduan')}
+        >
+          Kelola Pengaduan
+        </button>
+        <button 
+          className={`btn ${activeTab === 'pengguna' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => setActiveTab('pengguna')}
+        >
+          <Users size={16} className="mr-2" /> Manajemen Pengguna (Guru BK)
+        </button>
+      </div>
+
+      {activeTab === 'pengaduan' && (
+        <>
+          <div className="dashboard-grid mb-6">
+            <div className="card text-center" style={{ padding: '1.5rem' }}>
+              <h3 style={{ color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 500 }}>Total Sistem</h3>
+              <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.5rem 0' }}>{stats.total}</p>
+            </div>
+            <div className="card text-center" style={{ padding: '1.5rem' }}>
+              <h3 style={{ color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 500 }}>Menunggu Respons</h3>
+              <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary-color)', margin: '0.5rem 0' }}>{stats.baru}</p>
+            </div>
+            <div className="card text-center" style={{ padding: '1.5rem' }}>
+              <h3 style={{ color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 500 }}>Dalam Proses</h3>
+              <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--warning-color)', margin: '0.5rem 0' }}>{stats.diproses}</p>
+            </div>
+            <div className="card text-center" style={{ padding: '1.5rem' }}>
+              <h3 style={{ color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 500 }}>Selesai</h3>
+              <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--success-color)', margin: '0.5rem 0' }}>{stats.selesai}</p>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="mb-4">Semua Pengaduan Masuk</h3>
+            
+            {loading ? (
+              <p className="text-center py-4">Memuat data pengaduan sistem...</p>
+            ) : reports.length === 0 ? (
+              <p className="text-center py-4">Tidak ada data di sistem.</p>
+            ) : (
+              <div className="table-container">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Nomor</th>
+                      <th>Kategori</th>
+                      <th>Pelapor</th>
+                      <th>Tanggal</th>
+                      <th>Status</th>
+                      <th>Aksi Admin</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reports.map((report) => (
+                      <tr key={report.id}>
+                        <td style={{ fontWeight: 600 }}>{report.report_number}</td>
+                        <td>{report.category}</td>
+                        <td>{report.is_anonymous ? 'Anonim' : report.reporter_name}</td>
+                        <td>{new Date(report.created_at).toLocaleDateString('id-ID')}</td>
+                        <td>
+                          <span className={`badge ${getStatusBadgeClass(report.status)}`}>
+                            {report.status}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="flex gap-2">
+                            <button 
+                              className="btn btn-outline" 
+                              style={{ padding: '0.25rem 0.5rem', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }}
+                              onClick={() => handleDeleteReport(report.id)}
+                              title="Hapus Data"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {activeTab === 'pengguna' && (
+        <div className="card">
+          <div className="flex justify-between items-center mb-4">
+            <h3>Manajemen Akun Guru BK</h3>
+            <button className="btn btn-primary">+ Tambah Akun BK</button>
+          </div>
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Nama</th>
+                  <th>Email</th>
+                  <th>Peran</th>
+                  <th>Status</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Placeholder Data */}
+                <tr>
+                  <td>Bpk. Budi Santoso</td>
+                  <td>budi.bk@sekolah.sch.id</td>
+                  <td>Guru BK</td>
+                  <td><span className="badge badge-selesai">Aktif</span></td>
+                  <td>
+                    <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem' }}>Edit</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Ibu Siti Aminah</td>
+                  <td>siti.bk@sekolah.sch.id</td>
+                  <td>Guru BK</td>
+                  <td><span className="badge badge-selesai">Aktif</span></td>
+                  <td>
+                    <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem' }}>Edit</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AdminDashboard;
