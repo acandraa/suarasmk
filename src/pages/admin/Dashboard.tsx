@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { LogOut, Trash2, Users } from 'lucide-react';
+import { LogOut, Trash2, Users, Eye } from 'lucide-react';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -10,6 +10,10 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({ total: 0, diproses: 0, selesai: 0, baru: 0 });
   const [users, setUsers] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('pengaduan'); // 'pengaduan' or 'pengguna'
+  const [selectedReport, setSelectedReport] = useState<any>(null);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [newNote, setNewNote] = useState('');
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     checkUser();
@@ -26,13 +30,16 @@ const AdminDashboard = () => {
 
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('role')
+      .select('*')
       .eq('id', user.id)
       .single();
 
-    if (profile?.role !== 'admin') {
-      alert('Anda tidak memiliki akses Admin!');
-      navigate('/bk/dashboard');
+    if (profile) {
+      setUserProfile(profile);
+      if (profile.role !== 'admin') {
+        alert('Anda tidak memiliki akses Admin!');
+        navigate('/bk/dashboard');
+      }
     }
   };
 
@@ -77,6 +84,69 @@ const AdminDashboard = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
+  };
+
+  const fetchNotes = async (reportId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('report_notes')
+        .select('*, user_profiles(name, role)')
+        .eq('report_id', reportId)
+        .order('created_at', { ascending: true });
+        
+      if (error) throw error;
+      setNotes(data || []);
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+    }
+  };
+
+  const addNote = async (e: React.FormEvent, isViolenceFlag = false) => {
+    e.preventDefault();
+    if (!newNote.trim() && !isViolenceFlag) return;
+    if (!userProfile || !selectedReport) return;
+    
+    const noteContent = isViolenceFlag ? "⚠️ TANDAI SEBAGAI DUGAAN KASUS KEKERASAN ⚠️\n" + newNote : newNote;
+
+    try {
+      const { error } = await supabase
+        .from('report_notes')
+        .insert({
+          report_id: selectedReport.id,
+          user_id: userProfile.id,
+          note: noteContent
+        });
+
+      if (error) throw error;
+      setNewNote('');
+      fetchNotes(selectedReport.id);
+    } catch (error) {
+      console.error('Error adding note:', error);
+      alert('Gagal menambahkan catatan');
+    }
+  };
+
+  const handleSelectReport = (report: any) => {
+    setSelectedReport(report);
+    fetchNotes(report.id);
+  };
+
+  const updateStatus = async (id: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchReports();
+      if (selectedReport && selectedReport.id === id) {
+        setSelectedReport({ ...selectedReport, status: newStatus });
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Gagal mengupdate status');
+    }
   };
 
   const handleDeleteReport = async (id: string) => {
@@ -188,6 +258,13 @@ const AdminDashboard = () => {
                           <div className="flex gap-2">
                             <button 
                               className="btn btn-outline" 
+                              style={{ padding: '0.25rem 0.5rem' }}
+                              onClick={() => handleSelectReport(report)}
+                            >
+                              <Eye size={16} />
+                            </button>
+                            <button 
+                              className="btn btn-outline" 
                               style={{ padding: '0.25rem 0.5rem', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }}
                               onClick={() => handleDeleteReport(report.id)}
                               title="Hapus Data"
@@ -203,6 +280,105 @@ const AdminDashboard = () => {
               </div>
             )}
           </div>
+
+          {selectedReport && (
+            <div className="card mt-6" id="detail-section">
+              <div className="flex justify-between items-center mb-4">
+                <h3>Detail: {selectedReport.report_number}</h3>
+                <button onClick={() => setSelectedReport(null)} className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', border: 'none' }}>Tutup</button>
+              </div>
+              
+              <div style={{ background: 'var(--bg-color)', padding: '1.5rem', borderRadius: 'var(--radius-md)' }}>
+                <div className="dashboard-grid">
+                  <div>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: 0 }}>Kategori</p>
+                    <p style={{ fontWeight: 600, marginBottom: '1rem' }}>{selectedReport.category}</p>
+                    
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: 0 }}>Pelapor</p>
+                    <p style={{ fontWeight: 600, marginBottom: '1rem' }}>
+                      {selectedReport.is_anonymous ? 'Anonim' : `${selectedReport.reporter_name} (${selectedReport.reporter_class})`}
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: 0 }}>Tanggal</p>
+                    <p style={{ fontWeight: 600, marginBottom: '1rem' }}>
+                      {new Date(selectedReport.created_at).toLocaleString('id-ID')}
+                    </p>
+                    
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: 0 }}>Kontak</p>
+                    <p style={{ fontWeight: 600, marginBottom: '1rem' }}>{selectedReport.phone || '-'}</p>
+                  </div>
+                </div>
+                
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: 0 }}>Deskripsi Kejadian</p>
+                <div style={{ background: 'white', padding: '1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+                  {selectedReport.description}
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <h4 className="mb-2">Update Status</h4>
+                <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
+                  {['Baru', 'Diperiksa', 'Ditindaklanjuti', 'Selesai'].map((status) => (
+                    <button
+                      key={status}
+                      className={`btn ${selectedReport.status === status ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => updateStatus(selectedReport.id, status)}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--border-color)' }}>
+                <h4 className="mb-4">Buku Catatan Laporan & Tindak Lanjut</h4>
+                
+                <div className="mb-4" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {notes.length === 0 ? (
+                    <p className="text-center" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Belum ada catatan.</p>
+                  ) : (
+                    notes.map(note => (
+                      <div key={note.id} style={{ background: 'var(--bg-color)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
+                        <div className="flex justify-between items-center mb-2">
+                          <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{note.user_profiles?.name || 'Staf'} ({note.user_profiles?.role})</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {new Date(note.created_at).toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.875rem', whiteSpace: 'pre-wrap' }}>{note.note}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <form onSubmit={(e) => addNote(e)} className="mt-4">
+                  <div className="form-group mb-2">
+                    <textarea 
+                      className="form-control" 
+                      placeholder="Tambahkan catatan perkembangan kasus, hasil konseling, dll..."
+                      rows={3}
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                    ></textarea>
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="submit" className="btn btn-primary" disabled={!newNote.trim()}>
+                      Simpan Catatan
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn btn-outline" 
+                      style={{ borderColor: 'var(--danger-color)', color: 'var(--danger-color)' }}
+                      onClick={(e) => addNote(e, true)}
+                    >
+                      Tandai Dugaan Kekerasan
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </>
       )}
 

@@ -9,6 +9,9 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, diproses: 0, selesai: 0 });
   const [selectedReport, setSelectedReport] = useState<any>(null);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [newNote, setNewNote] = useState('');
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     checkUser();
@@ -24,12 +27,15 @@ const Dashboard = () => {
 
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('role')
+      .select('*')
       .eq('id', user.id)
       .single();
 
-    if (profile?.role === 'admin') {
-      navigate('/admin/dashboard');
+    if (profile) {
+      setUserProfile(profile);
+      if (profile.role === 'admin') {
+        navigate('/admin/dashboard');
+      }
     }
   };
 
@@ -60,6 +66,51 @@ const Dashboard = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
+  };
+
+  const fetchNotes = async (reportId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('report_notes')
+        .select('*, user_profiles(name, role)')
+        .eq('report_id', reportId)
+        .order('created_at', { ascending: true });
+        
+      if (error) throw error;
+      setNotes(data || []);
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+    }
+  };
+
+  const addNote = async (e: React.FormEvent, isViolenceFlag = false) => {
+    e.preventDefault();
+    if (!newNote.trim() && !isViolenceFlag) return;
+    if (!userProfile || !selectedReport) return;
+    
+    const noteContent = isViolenceFlag ? "⚠️ TANDAI SEBAGAI DUGAAN KASUS KEKERASAN ⚠️\n" + newNote : newNote;
+
+    try {
+      const { error } = await supabase
+        .from('report_notes')
+        .insert({
+          report_id: selectedReport.id,
+          user_id: userProfile.id,
+          note: noteContent
+        });
+
+      if (error) throw error;
+      setNewNote('');
+      fetchNotes(selectedReport.id);
+    } catch (error) {
+      console.error('Error adding note:', error);
+      alert('Gagal menambahkan catatan');
+    }
+  };
+
+  const handleSelectReport = (report: any) => {
+    setSelectedReport(report);
+    fetchNotes(report.id);
   };
 
   const updateStatus = async (id: string, newStatus: string) => {
@@ -152,7 +203,7 @@ const Dashboard = () => {
                         <button 
                           className="btn btn-outline" 
                           style={{ padding: '0.25rem 0.5rem' }}
-                          onClick={() => setSelectedReport(report)}
+                          onClick={() => handleSelectReport(report)}
                         >
                           <Eye size={16} /> Detail
                         </button>
@@ -213,6 +264,53 @@ const Dashboard = () => {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <h4 className="mb-4">Buku Catatan Laporan & Tindak Lanjut</h4>
+              
+              <div className="mb-4" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {notes.length === 0 ? (
+                  <p className="text-center" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Belum ada catatan.</p>
+                ) : (
+                  notes.map(note => (
+                    <div key={note.id} style={{ background: 'var(--bg-color)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
+                      <div className="flex justify-between items-center mb-2">
+                        <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{note.user_profiles?.name || 'Staf'} ({note.user_profiles?.role})</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {new Date(note.created_at).toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.875rem', whiteSpace: 'pre-wrap' }}>{note.note}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <form onSubmit={(e) => addNote(e)} className="mt-4">
+                <div className="form-group mb-2">
+                  <textarea 
+                    className="form-control" 
+                    placeholder="Tambahkan catatan perkembangan kasus, hasil konseling, dll..."
+                    rows={3}
+                    value={newNote}
+                    onChange={(e) => setNewNote(e.target.value)}
+                  ></textarea>
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" className="btn btn-primary" disabled={!newNote.trim()}>
+                    Simpan Catatan
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn btn-outline" 
+                    style={{ borderColor: 'var(--danger-color)', color: 'var(--danger-color)' }}
+                    onClick={(e) => addNote(e, true)}
+                  >
+                    Tandai Dugaan Kekerasan
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
