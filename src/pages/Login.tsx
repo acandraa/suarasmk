@@ -24,7 +24,18 @@ const Login = () => {
       if (error) throw error;
       
       if (data.user) {
-        navigate('/bk/dashboard');
+        // Fetch role to determine redirect
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (profile?.role === 'admin') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/bk/dashboard');
+        }
       }
     } catch (err: any) {
       console.error('Login error:', err);
@@ -38,8 +49,8 @@ const Login = () => {
     <div className="card" style={{ maxWidth: '400px', margin: '4rem auto' }}>
       <div className="text-center mb-6">
         <Lock size={48} className="text-primary mx-auto mb-2" style={{ color: 'var(--primary-color)' }} />
-        <h2>Login BK</h2>
-        <p>Masuk untuk mengelola pengaduan siswa</p>
+        <h2>Masuk Sistem</h2>
+        <p>Login sebagai Admin atau Guru BK</p>
       </div>
 
       <form onSubmit={handleLogin}>

@@ -13,8 +13,7 @@ const Navbar = () => {
           <Link to="/" className="btn btn-outline" style={{ border: 'none' }}>Buat Laporan</Link>
           <Link to="/track" className="btn btn-outline">Cek Status</Link>
           {/* Tambahan Tombol Login */}
-          <Link to="/bk/login" className="btn btn-outline" style={{ border: 'none', marginLeft: '1rem', color: 'var(--text-muted)' }}>Login BK</Link>
-          <Link to="/admin/login" className="btn btn-outline" style={{ border: 'none', color: 'var(--danger-color)' }}>Login Admin</Link>
+          <Link to="/login" className="btn btn-primary" style={{ marginLeft: '1rem' }}>Masuk Staf</Link>
         </div>
       </div>
     </nav>

@@ -18,7 +18,7 @@ const Dashboard = () => {
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      navigate('/bk/login');
+      navigate('/login');
       return;
     }
 
@@ -59,7 +59,7 @@ const Dashboard = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate('/bk/login');
+    navigate('/login');
   };
 
   const updateStatus = async (id: string, newStatus: string) => {

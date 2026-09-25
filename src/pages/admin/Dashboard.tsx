@@ -20,7 +20,7 @@ const AdminDashboard = () => {
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      navigate('/admin/login');
+      navigate('/login');
       return;
     }
 
@@ -76,7 +76,7 @@ const AdminDashboard = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate('/');
+    navigate('/login');
   };
 
   const handleDeleteReport = async (id: string) => {

@@ -4,9 +4,8 @@ import SubmitReport from './pages/student/SubmitReport';
 import SuccessPage from './pages/student/SuccessPage';
 import TrackStatus from './pages/student/TrackStatus';
 import Dashboard from './pages/bk/Dashboard';
-import Login from './pages/bk/Login';
+import Login from './pages/Login';
 import AdminDashboard from './pages/admin/Dashboard';
-import AdminLogin from './pages/admin/Login';
 
 function App() {
   return (
@@ -20,12 +19,13 @@ function App() {
             <Route path="/success/:reportNumber" element={<SuccessPage />} />
             <Route path="/track" element={<TrackStatus />} />
 
+            {/* Unified Login */}
+            <Route path="/login" element={<Login />} />
+
             {/* BK Routes */}
-            <Route path="/bk/login" element={<Login />} />
             <Route path="/bk/dashboard" element={<Dashboard />} />
 
             {/* Admin Routes */}
-            <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
           </Routes>
         </main>
