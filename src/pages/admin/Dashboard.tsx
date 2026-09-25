@@ -8,18 +8,45 @@ const AdminDashboard = () => {
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, diproses: 0, selesai: 0, baru: 0 });
+  const [users, setUsers] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('pengaduan'); // 'pengaduan' or 'pengguna'
 
   useEffect(() => {
     checkUser();
     fetchReports();
+    fetchUsers();
   }, []);
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      // In a real app, redirect if not admin
-      // navigate('/admin/login');
+      navigate('/admin/login');
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      alert('Anda tidak memiliki akses Admin!');
+      navigate('/bk/dashboard');
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
     }
   };
 
@@ -197,25 +224,23 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {/* Placeholder Data */}
-                <tr>
-                  <td>Bpk. Budi Santoso</td>
-                  <td>budi.bk@sekolah.sch.id</td>
-                  <td>Guru BK</td>
-                  <td><span className="badge badge-selesai">Aktif</span></td>
-                  <td>
-                    <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem' }}>Edit</button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>Ibu Siti Aminah</td>
-                  <td>siti.bk@sekolah.sch.id</td>
-                  <td>Guru BK</td>
-                  <td><span className="badge badge-selesai">Aktif</span></td>
-                  <td>
-                    <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem' }}>Edit</button>
-                  </td>
-                </tr>
+                {users.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center">Belum ada data pengguna.</td>
+                  </tr>
+                ) : (
+                  users.map((u) => (
+                    <tr key={u.id}>
+                      <td>{u.name}</td>
+                      <td>{u.email}</td>
+                      <td>{u.role === 'admin' ? 'Admin' : 'Guru BK'}</td>
+                      <td><span className="badge badge-selesai">Aktif</span></td>
+                      <td>
+                        <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem' }}>Edit</button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
