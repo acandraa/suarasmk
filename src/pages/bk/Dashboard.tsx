@@ -12,10 +12,22 @@ const Dashboard = () => {
   const [notes, setNotes] = useState<any[]>([]);
   const [newNote, setNewNote] = useState('');
   const [userProfile, setUserProfile] = useState<any>(null);
+  
+  // Fitur Buku Catatan Kekerasan
+  const [activeTab, setActiveTab] = useState('pengaduan');
+  const [violenceRecords, setViolenceRecords] = useState<any[]>([]);
+  const [showViolenceForm, setShowViolenceForm] = useState(false);
+  const [newViolence, setNewViolence] = useState({
+    perpetrator_name: '',
+    perpetrator_class: '',
+    case_description: '',
+    action_taken: ''
+  });
 
   useEffect(() => {
     checkUser();
     fetchReports();
+    fetchViolenceRecords();
   }, []);
 
   const checkUser = async () => {
@@ -80,6 +92,47 @@ const Dashboard = () => {
       setNotes(data || []);
     } catch (error) {
       console.error('Error fetching notes:', error);
+    }
+  };
+
+  const fetchViolenceRecords = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('violence_records')
+        .select('*, user_profiles(name, role)')
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setViolenceRecords(data || []);
+    } catch (error) {
+      console.error('Error fetching violence records:', error);
+    }
+  };
+
+  const addViolenceRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userProfile) return;
+
+    try {
+      const { error } = await supabase
+        .from('violence_records')
+        .insert({
+          perpetrator_name: newViolence.perpetrator_name,
+          perpetrator_class: newViolence.perpetrator_class,
+          case_description: newViolence.case_description,
+          action_taken: newViolence.action_taken,
+          recorded_by: userProfile.id
+        });
+
+      if (error) throw error;
+      
+      setNewViolence({ perpetrator_name: '', perpetrator_class: '', case_description: '', action_taken: '' });
+      setShowViolenceForm(false);
+      fetchViolenceRecords();
+      alert('Data pelaku berhasil dicatat!');
+    } catch (error) {
+      console.error('Error adding violence record:', error);
+      alert('Gagal mencatat data pelaku.');
     }
   };
 
@@ -151,24 +204,42 @@ const Dashboard = () => {
         </button>
       </div>
 
-      <div className="dashboard-grid mb-6">
-        <div className="card text-center" style={{ padding: '1.5rem' }}>
-          <h3 style={{ color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 500 }}>Total Pengaduan</h3>
-          <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.5rem 0' }}>{stats.total}</p>
-        </div>
-        <div className="card text-center" style={{ padding: '1.5rem' }}>
-          <h3 style={{ color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 500 }}>Sedang Diproses</h3>
-          <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--warning-color)', margin: '0.5rem 0' }}>{stats.diproses}</p>
-        </div>
-        <div className="card text-center" style={{ padding: '1.5rem' }}>
-          <h3 style={{ color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 500 }}>Selesai</h3>
-          <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--success-color)', margin: '0.5rem 0' }}>{stats.selesai}</p>
-        </div>
+      <div className="flex gap-4 mb-6">
+        <button 
+          className={`btn ${activeTab === 'pengaduan' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => setActiveTab('pengaduan')}
+        >
+          Daftar Pengaduan Siswa
+        </button>
+        <button 
+          className={`btn ${activeTab === 'kekerasan' ? 'btn-primary' : 'btn-outline'}`}
+          style={activeTab === 'kekerasan' ? { background: 'var(--danger-color)', borderColor: 'var(--danger-color)' } : { color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }}
+          onClick={() => setActiveTab('kekerasan')}
+        >
+          Buku Catatan Kasus Kekerasan
+        </button>
       </div>
 
-      <div className="flex gap-6" style={{ flexDirection: 'column' }}>
-        <div className="card">
-          <h3 className="mb-4">Daftar Pengaduan</h3>
+      {activeTab === 'pengaduan' && (
+        <>
+          <div className="dashboard-grid mb-6">
+            <div className="card text-center" style={{ padding: '1.5rem' }}>
+              <h3 style={{ color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 500 }}>Total Pengaduan</h3>
+              <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.5rem 0' }}>{stats.total}</p>
+            </div>
+            <div className="card text-center" style={{ padding: '1.5rem' }}>
+              <h3 style={{ color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 500 }}>Sedang Diproses</h3>
+              <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--warning-color)', margin: '0.5rem 0' }}>{stats.diproses}</p>
+            </div>
+            <div className="card text-center" style={{ padding: '1.5rem' }}>
+              <h3 style={{ color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 500 }}>Selesai</h3>
+              <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--success-color)', margin: '0.5rem 0' }}>{stats.selesai}</p>
+            </div>
+          </div>
+
+          <div className="flex gap-6" style={{ flexDirection: 'column' }}>
+            <div className="card">
+              <h3 className="mb-4">Daftar Pengaduan</h3>
           
           {loading ? (
             <p className="text-center py-4">Memuat data...</p>
@@ -314,7 +385,106 @@ const Dashboard = () => {
             </div>
           </div>
         )}
-      </div>
+        </div>
+        </>
+      )}
+
+      {activeTab === 'kekerasan' && (
+        <div className="card">
+          <div className="flex justify-between items-center mb-6">
+            <h3>Buku Catatan Kasus Kekerasan (Pendataan Pelaku)</h3>
+            <button 
+              className="btn btn-primary" 
+              style={{ background: 'var(--danger-color)' }}
+              onClick={() => setShowViolenceForm(!showViolenceForm)}
+            >
+              {showViolenceForm ? 'Batal' : '+ Tambah Data Pelaku'}
+            </button>
+          </div>
+
+          {showViolenceForm && (
+            <div className="mb-6 p-4" style={{ background: 'var(--bg-color)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+              <h4 className="mb-4">Form Pendataan Pelaku Kekerasan</h4>
+              <form onSubmit={addViolenceRecord}>
+                <div className="dashboard-grid mb-4">
+                  <div className="form-group">
+                    <label className="form-label">Nama Pelaku</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      required 
+                      value={newViolence.perpetrator_name}
+                      onChange={e => setNewViolence({...newViolence, perpetrator_name: e.target.value})}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Kelas</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      value={newViolence.perpetrator_class}
+                      onChange={e => setNewViolence({...newViolence, perpetrator_class: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="form-group mb-4">
+                  <label className="form-label">Deskripsi Kasus / Pelanggaran</label>
+                  <textarea 
+                    className="form-control" 
+                    rows={3} 
+                    required
+                    value={newViolence.case_description}
+                    onChange={e => setNewViolence({...newViolence, case_description: e.target.value})}
+                  ></textarea>
+                </div>
+                <div className="form-group mb-4">
+                  <label className="form-label">Tindak Lanjut / Sanksi</label>
+                  <textarea 
+                    className="form-control" 
+                    rows={2}
+                    value={newViolence.action_taken}
+                    onChange={e => setNewViolence({...newViolence, action_taken: e.target.value})}
+                  ></textarea>
+                </div>
+                <button type="submit" className="btn btn-primary" style={{ background: 'var(--danger-color)' }}>Simpan Data Pelaku</button>
+              </form>
+            </div>
+          )}
+
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Nama Pelaku</th>
+                  <th>Kelas</th>
+                  <th>Deskripsi Kasus</th>
+                  <th>Tindak Lanjut</th>
+                  <th>Dicatat Oleh</th>
+                  <th>Tanggal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {violenceRecords.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-4">Belum ada data pelaku kekerasan yang dicatat.</td>
+                  </tr>
+                ) : (
+                  violenceRecords.map(record => (
+                    <tr key={record.id}>
+                      <td style={{ fontWeight: 600, color: 'var(--danger-color)' }}>{record.perpetrator_name}</td>
+                      <td>{record.perpetrator_class || '-'}</td>
+                      <td style={{ maxWidth: '300px', whiteSpace: 'normal' }}>{record.case_description}</td>
+                      <td style={{ maxWidth: '200px', whiteSpace: 'normal' }}>{record.action_taken || 'Belum ada tindak lanjut'}</td>
+                      <td>{record.user_profiles?.name || 'Staf'}</td>
+                      <td>{new Date(record.created_at).toLocaleDateString('id-ID')}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
