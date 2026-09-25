@@ -1,4 +1,10 @@
--- Supabase Schema for Sistem Pengaduan Sekolah
+-- Supabase Schema for Sistem Pengaduan Sekolah (Versi Reset / Bisa dijalankan berulang)
+
+-- 0. Hapus data dan struktur lama (Hati-hati: ini akan mereset database ke awal)
+DROP TABLE IF EXISTS public.report_notes CASCADE;
+DROP TABLE IF EXISTS public.reports CASCADE;
+DROP TABLE IF EXISTS public.user_profiles CASCADE;
+DROP TYPE IF EXISTS report_status CASCADE;
 
 -- Create Enum for Report Status
 CREATE TYPE report_status AS ENUM ('Baru', 'Diperiksa', 'Ditindaklanjuti', 'Selesai');
@@ -83,7 +89,3 @@ TO authenticated
 USING (true)
 WITH CHECK (true);
 
-
--- Storage Bucket for Evidence (Optional)
--- You'll need to create a bucket named 'evidence' in Supabase Storage dashboard manually
--- and set its policy to public read, authenticated insert.
