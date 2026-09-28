@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { LogOut, Eye, Upload, Download } from 'lucide-react';
+import { LogOut, Eye, Upload, Download, Printer } from 'lucide-react';
+import PrintReportModal from '../../components/PrintReportModal';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -17,6 +18,9 @@ const Dashboard = () => {
   const fileInputReportsRef = useRef<HTMLInputElement>(null);
   const fileInputViolenceRef = useRef<HTMLInputElement>(null);
   const [importLoading, setImportLoading] = useState(false);
+
+  // Print modal state
+  const [printModal, setPrintModal] = useState<{ open: boolean; type: 'pengaduan' | 'kekerasan' }>({ open: false, type: 'pengaduan' });
 
   // Fitur Buku Catatan Kekerasan
   const [activeTab, setActiveTab] = useState('pengaduan');
@@ -371,6 +375,14 @@ const Dashboard = () => {
                 <div className="flex gap-2">
                   <button 
                     className="btn btn-outline" 
+                    onClick={() => setPrintModal({ open: true, type: 'pengaduan' })}
+                    style={{ padding: '0.5rem 1rem' }}
+                  >
+                    <Printer size={16} className="mr-2" style={{ display: 'inline', verticalAlign: 'middle', marginTop: '-2px' }} />
+                    Cetak Laporan
+                  </button>
+                  <button 
+                    className="btn btn-outline" 
                     onClick={downloadReportsTemplate}
                     style={{ padding: '0.5rem 1rem' }}
                   >
@@ -551,6 +563,14 @@ const Dashboard = () => {
             <div className="flex gap-2">
               <button 
                 className="btn btn-outline" 
+                onClick={() => setPrintModal({ open: true, type: 'kekerasan' })}
+                style={{ padding: '0.5rem 1rem', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }}
+              >
+                <Printer size={16} className="mr-2" style={{ display: 'inline', verticalAlign: 'middle', marginTop: '-2px' }} />
+                Cetak Buku Catatan
+              </button>
+              <button 
+                className="btn btn-outline" 
                 onClick={downloadViolenceTemplate}
                 style={{ padding: '0.5rem 1rem' }}
               >
@@ -666,6 +686,13 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+      <PrintReportModal
+        isOpen={printModal.open}
+        onClose={() => setPrintModal({ ...printModal, open: false })}
+        type={printModal.type}
+        reports={reports}
+        violenceRecords={violenceRecords}
+      />
     </div>
   );
 };
