@@ -271,6 +271,88 @@ textarea.form-control {
   gap: 0.5rem;
 }
 
+/* Desktop: show top navbar, hide mobile elements */
+.navbar-desktop {
+  display: block;
+}
+.navbar-mobile-top {
+  display: none;
+}
+.bottom-nav {
+  display: none;
+}
+
+/* ===================== */
+/* BOTTOM NAV - MOBILE   */
+/* ===================== */
+@media (max-width: 768px) {
+  /* Hide desktop navbar */
+  .navbar-desktop {
+    display: none;
+  }
+
+  /* Show slim top bar with logo only */
+  .navbar-mobile-top {
+    display: block;
+    background-color: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.6rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Show bottom nav bar */
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background-color: var(--surface-color);
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    justify-content: space-around;
+    align-items: stretch;
+  }
+
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    flex: 1;
+    padding: 0.6rem 0.25rem;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    font-weight: 600;
+    transition: color 0.2s ease;
+    border-radius: 0;
+  }
+
+  .bottom-nav-item.active {
+    color: var(--primary-color);
+  }
+
+  .bottom-nav-item svg {
+    transition: transform 0.2s ease;
+  }
+
+  .bottom-nav-item.active svg {
+    transform: translateY(-2px);
+  }
+
+  /* Add bottom padding to page so content is not hidden behind bottom nav */
+  .main-content {
+    padding-bottom: 70px;
+  }
+}
+
 /* App Layout Grid */
 .dashboard-grid {
   display: grid;
