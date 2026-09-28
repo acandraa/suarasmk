@@ -260,8 +260,8 @@ const PrintReportModal = ({ isOpen, onClose, type, reports = [], violenceRecords
           bottom: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
           left: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
           right: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
-          insideH: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
-          insideV: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+          insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+          insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
         },
         rows: [headerRow, ...dataRows],
       });
