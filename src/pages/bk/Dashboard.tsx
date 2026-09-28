@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { LogOut, Eye } from 'lucide-react';
+import { LogOut, Eye, Upload } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -13,6 +13,11 @@ const Dashboard = () => {
   const [newNote, setNewNote] = useState('');
   const [userProfile, setUserProfile] = useState<any>(null);
   
+  // Import references
+  const fileInputReportsRef = useRef<HTMLInputElement>(null);
+  const fileInputViolenceRef = useRef<HTMLInputElement>(null);
+  const [importLoading, setImportLoading] = useState(false);
+
   // Fitur Buku Catatan Kekerasan
   const [activeTab, setActiveTab] = useState('pengaduan');
   const [violenceRecords, setViolenceRecords] = useState<any[]>([]);
@@ -29,6 +34,104 @@ const Dashboard = () => {
     fetchReports();
     fetchViolenceRecords();
   }, []);
+
+  const handleImportReports = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportLoading(true);
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim() !== '');
+      if (lines.length < 2) throw new Error('File CSV kosong atau tidak valid');
+
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      
+      const insertData = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
+        if (values.length !== headers.length) continue;
+        
+        const row: any = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index];
+        });
+
+        const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+        const randomNum = Math.floor(1000 + Math.random() * 9000);
+        
+        insertData.push({
+          report_number: row.report_number || `LAP-${dateStr}-${randomNum}-${i}`,
+          category: row.category || 'Lainnya',
+          description: row.description || '-',
+          reporter_name: row.reporter_name || 'Anonim',
+          reporter_class: row.reporter_class || '-',
+          is_anonymous: row.is_anonymous === 'true' || row.is_anonymous === '1' || false,
+          phone: row.phone || null,
+          status: row.status || 'Baru'
+        });
+      }
+
+      if (insertData.length > 0) {
+        const { error } = await supabase.from('reports').insert(insertData);
+        if (error) throw error;
+        alert(`Berhasil mengimpor ${insertData.length} data pengaduan`);
+        fetchReports();
+      }
+    } catch (error: any) {
+      console.error('Import error:', error);
+      alert('Gagal mengimpor data: ' + error.message);
+    } finally {
+      setImportLoading(false);
+      if (fileInputReportsRef.current) fileInputReportsRef.current.value = '';
+    }
+  };
+
+  const handleImportViolence = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userProfile) return;
+
+    setImportLoading(true);
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim() !== '');
+      if (lines.length < 2) throw new Error('File CSV kosong atau tidak valid');
+
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      
+      const insertData = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
+        if (values.length !== headers.length) continue;
+        
+        const row: any = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index];
+        });
+
+        insertData.push({
+          perpetrator_name: row.perpetrator_name || '-',
+          perpetrator_class: row.perpetrator_class || '-',
+          case_description: row.case_description || '-',
+          action_taken: row.action_taken || null,
+          recorded_by: userProfile.id
+        });
+      }
+
+      if (insertData.length > 0) {
+        const { error } = await supabase.from('violence_records').insert(insertData);
+        if (error) throw error;
+        alert(`Berhasil mengimpor ${insertData.length} data catatan kekerasan`);
+        fetchViolenceRecords();
+      }
+    } catch (error: any) {
+      console.error('Import error:', error);
+      alert('Gagal mengimpor data: ' + error.message);
+    } finally {
+      setImportLoading(false);
+      if (fileInputViolenceRef.current) fileInputViolenceRef.current.value = '';
+    }
+  };
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -239,7 +342,27 @@ const Dashboard = () => {
 
           <div className="flex gap-6" style={{ flexDirection: 'column' }}>
             <div className="card">
-              <h3 className="mb-4">Daftar Pengaduan</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="mb-0">Daftar Pengaduan</h3>
+                <div>
+                  <input 
+                    type="file" 
+                    accept=".csv" 
+                    ref={fileInputReportsRef} 
+                    style={{ display: 'none' }} 
+                    onChange={handleImportReports} 
+                  />
+                  <button 
+                    className="btn btn-outline" 
+                    onClick={() => fileInputReportsRef.current?.click()}
+                    disabled={importLoading}
+                    style={{ padding: '0.5rem 1rem' }}
+                  >
+                    <Upload size={16} className="mr-2" style={{ display: 'inline', verticalAlign: 'middle', marginTop: '-2px' }} />
+                    {importLoading ? 'Memproses...' : 'Import Data'}
+                  </button>
+                </div>
+              </div>
           
           {loading ? (
             <p className="text-center py-4">Memuat data...</p>
@@ -393,13 +516,31 @@ const Dashboard = () => {
         <div className="card">
           <div className="flex justify-between items-center mb-6">
             <h3>Buku Catatan Kasus Kekerasan (Pendataan Pelaku)</h3>
-            <button 
-              className="btn btn-primary" 
-              style={{ background: 'var(--danger-color)' }}
-              onClick={() => setShowViolenceForm(!showViolenceForm)}
-            >
-              {showViolenceForm ? 'Batal' : '+ Tambah Data Pelaku'}
-            </button>
+            <div className="flex gap-2">
+              <input 
+                type="file" 
+                accept=".csv" 
+                ref={fileInputViolenceRef} 
+                style={{ display: 'none' }} 
+                onChange={handleImportViolence} 
+              />
+              <button 
+                className="btn btn-outline" 
+                onClick={() => fileInputViolenceRef.current?.click()}
+                disabled={importLoading}
+                style={{ padding: '0.5rem 1rem' }}
+              >
+                <Upload size={16} className="mr-2" style={{ display: 'inline', verticalAlign: 'middle', marginTop: '-2px' }} />
+                {importLoading ? 'Memproses...' : 'Import Data'}
+              </button>
+              <button 
+                className="btn btn-primary" 
+                style={{ background: 'var(--danger-color)' }}
+                onClick={() => setShowViolenceForm(!showViolenceForm)}
+              >
+                {showViolenceForm ? 'Batal' : '+ Tambah Data Pelaku'}
+              </button>
+            </div>
           </div>
 
           {showViolenceForm && (
