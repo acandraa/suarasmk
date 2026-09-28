@@ -6,14 +6,13 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="container navbar-container">
         <Link to="/" className="navbar-brand">
-          <ShieldAlert size={28} className="text-primary" />
+          <ShieldAlert size={24} className="text-primary" />
           <span>LaporSekolah</span>
         </Link>
-        <div className="flex gap-4 items-center">
-          <Link to="/" className="btn btn-outline" style={{ border: 'none' }}>Buat Laporan</Link>
-          <Link to="/track" className="btn btn-outline">Cek Status</Link>
-          {/* Tambahan Tombol Login */}
-          <Link to="/login" className="btn btn-primary" style={{ marginLeft: '1rem' }}>Masuk Staf</Link>
+        <div className="navbar-links">
+          <Link to="/" className="btn btn-outline" style={{ border: 'none', padding: '0.5rem 0.75rem' }}>Buat Laporan</Link>
+          <Link to="/track" className="btn btn-outline" style={{ padding: '0.5rem 0.75rem' }}>Cek Status</Link>
+          <Link to="/login" className="btn btn-primary" style={{ padding: '0.5rem 0.75rem' }}>Masuk Staf</Link>
         </div>
       </div>
     </nav>
