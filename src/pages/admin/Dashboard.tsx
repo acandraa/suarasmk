@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { LogOut, Trash2, Users, Eye, Upload } from 'lucide-react';
+import { LogOut, Trash2, Users, Eye, Upload, Download } from 'lucide-react';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -133,6 +133,30 @@ const AdminDashboard = () => {
       setImportLoading(false);
       if (fileInputViolenceRef.current) fileInputViolenceRef.current.value = '';
     }
+  };
+
+  const downloadReportsTemplate = () => {
+    const headers = "report_number,category,description,reporter_name,reporter_class,is_anonymous,phone,status\n";
+    const sample = "LAP-20231025-1234,Bullying,Deskripsi contoh kejadian pengaduan,Budi,X RPL 1,false,08123456789,Baru\n";
+    const blob = new Blob([headers + sample], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_pengaduan.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const downloadViolenceTemplate = () => {
+    const headers = "perpetrator_name,perpetrator_class,case_description,action_taken\n";
+    const sample = "Andi,XI TKJ 2,Melakukan perundungan secara fisik,Skorsing 3 hari\n";
+    const blob = new Blob([headers + sample], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_kekerasan.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const checkUser = async () => {
@@ -387,7 +411,15 @@ const AdminDashboard = () => {
           <div className="card">
             <div className="flex justify-between items-center mb-4">
               <h3 className="mb-0">Semua Pengaduan Masuk</h3>
-              <div>
+              <div className="flex gap-2">
+                <button 
+                  className="btn btn-outline" 
+                  onClick={downloadReportsTemplate}
+                  style={{ padding: '0.5rem 1rem' }}
+                >
+                  <Download size={16} className="mr-2" style={{ display: 'inline', verticalAlign: 'middle', marginTop: '-2px' }} />
+                  Template CSV
+                </button>
                 <input 
                   type="file" 
                   accept=".csv" 
@@ -610,6 +642,14 @@ const AdminDashboard = () => {
           <div className="flex justify-between items-center mb-6">
             <h3>Buku Catatan Kasus Kekerasan (Pendataan Pelaku)</h3>
             <div className="flex gap-2">
+              <button 
+                className="btn btn-outline" 
+                onClick={downloadViolenceTemplate}
+                style={{ padding: '0.5rem 1rem' }}
+              >
+                <Download size={16} className="mr-2" style={{ display: 'inline', verticalAlign: 'middle', marginTop: '-2px' }} />
+                Template CSV
+              </button>
               <input 
                 type="file" 
                 accept=".csv" 
