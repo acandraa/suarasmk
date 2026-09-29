@@ -100,18 +100,6 @@ const Dashboard = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Ambil ID user secara langsung jika userProfile gagal dimuat
-    let currentUserId = userProfile?.id;
-    if (!currentUserId) {
-      const { data } = await supabase.auth.getUser();
-      currentUserId = data.user?.id;
-    }
-    
-    if (!currentUserId) {
-      alert("Sesi login tidak valid. Silakan login ulang.");
-      return;
-    }
-
     setImportLoading(true);
     try {
       const text = await file.text();
@@ -133,13 +121,16 @@ const Dashboard = () => {
           row[header] = values[index];
         });
 
-        insertData.push({
+        const recordObj: any = {
           perpetrator_name: row.perpetrator_name || '-',
           perpetrator_class: row.perpetrator_class || '-',
           case_description: row.case_description || '-',
-          action_taken: row.action_taken || null,
-          recorded_by: currentUserId
-        });
+          action_taken: row.action_taken || null
+        };
+        if (userProfile?.id) {
+          recordObj.recorded_by = userProfile.id;
+        }
+        insertData.push(recordObj);
       }
 
       if (insertData.length > 0) {
