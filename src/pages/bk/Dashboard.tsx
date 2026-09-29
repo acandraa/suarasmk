@@ -46,7 +46,7 @@ const Dashboard = () => {
     setImportLoading(true);
     try {
       const text = await file.text();
-      const lines = text.split('\n').filter(line => line.trim() !== '');
+      const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
       if (lines.length < 2) throw new Error('File CSV kosong atau tidak valid');
 
       const firstLine = lines[0];
@@ -98,12 +98,16 @@ const Dashboard = () => {
 
   const handleImportViolence = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !userProfile) return;
+    if (!file) return;
+    if (!userProfile) {
+      alert("Gagal memuat profil pengguna. Silakan refresh halaman atau login ulang.");
+      return;
+    }
 
     setImportLoading(true);
     try {
       const text = await file.text();
-      const lines = text.split('\n').filter(line => line.trim() !== '');
+      const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
       if (lines.length < 2) throw new Error('File CSV kosong atau tidak valid');
 
       const firstLine = lines[0];
@@ -569,7 +573,7 @@ const Dashboard = () => {
       {activeTab === 'kekerasan' && (
         <div className="card">
           <div className="flex justify-between items-center mb-6">
-            <h3>Buku Catatan Kasus Kekerasan (Pendataan Pelaku)</h3>
+            <h3>Buku Catatan Kasus Kekerasan (Data Pelaku)</h3>
             <div className="flex gap-2">
               <button 
                 className="btn btn-outline" 
