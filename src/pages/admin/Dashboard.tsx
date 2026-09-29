@@ -101,8 +101,16 @@ const AdminDashboard = () => {
   const handleImportViolence = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!userProfile) {
-      alert("Gagal memuat profil pengguna. Silakan refresh halaman atau login ulang.");
+
+    // Ambil ID user secara langsung jika userProfile gagal dimuat
+    let currentUserId = userProfile?.id;
+    if (!currentUserId) {
+      const { data } = await supabase.auth.getUser();
+      currentUserId = data.user?.id;
+    }
+    
+    if (!currentUserId) {
+      alert("Sesi login tidak valid. Silakan login ulang.");
       return;
     }
 
@@ -132,7 +140,7 @@ const AdminDashboard = () => {
           perpetrator_class: row.perpetrator_class || '-',
           case_description: row.case_description || '-',
           action_taken: row.action_taken || null,
-          recorded_by: userProfile.id
+          recorded_by: currentUserId
         });
       }
 
