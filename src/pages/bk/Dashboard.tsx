@@ -49,11 +49,14 @@ const Dashboard = () => {
       const lines = text.split('\n').filter(line => line.trim() !== '');
       if (lines.length < 2) throw new Error('File CSV kosong atau tidak valid');
 
-      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      const firstLine = lines[0];
+      const delimiter = firstLine.includes(';') ? ';' : ',';
+      const headers = firstLine.split(delimiter).map(h => h.trim().replace(/"/g, ''));
       
       const insertData = [];
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
+        const regex = new RegExp(`${delimiter}(?=(?:(?:[^"]*"){2})*[^"]*$)`);
+        const values = lines[i].split(regex).map(v => v.trim().replace(/^"|"$/g, ''));
         if (values.length !== headers.length) continue;
         
         const row: any = {};
@@ -81,6 +84,8 @@ const Dashboard = () => {
         if (error) throw error;
         alert(`Berhasil mengimpor ${insertData.length} data pengaduan`);
         fetchReports();
+      } else {
+        throw new Error('Format baris tidak sesuai dengan header atau file kosong.');
       }
     } catch (error: any) {
       console.error('Import error:', error);
@@ -101,11 +106,14 @@ const Dashboard = () => {
       const lines = text.split('\n').filter(line => line.trim() !== '');
       if (lines.length < 2) throw new Error('File CSV kosong atau tidak valid');
 
-      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      const firstLine = lines[0];
+      const delimiter = firstLine.includes(';') ? ';' : ',';
+      const headers = firstLine.split(delimiter).map(h => h.trim().replace(/"/g, ''));
       
       const insertData = [];
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
+        const regex = new RegExp(`${delimiter}(?=(?:(?:[^"]*"){2})*[^"]*$)`);
+        const values = lines[i].split(regex).map(v => v.trim().replace(/^"|"$/g, ''));
         if (values.length !== headers.length) continue;
         
         const row: any = {};
@@ -127,6 +135,8 @@ const Dashboard = () => {
         if (error) throw error;
         alert(`Berhasil mengimpor ${insertData.length} data catatan kekerasan`);
         fetchViolenceRecords();
+      } else {
+        throw new Error('Format baris tidak sesuai dengan header atau file kosong.');
       }
     } catch (error: any) {
       console.error('Import error:', error);
